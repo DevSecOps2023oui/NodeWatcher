@@ -1,0 +1,25 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model sensors_data {
+  id           Int      @id @default(autoincrement())
+  temperature  Float
+  hydrometry   Float
+  wind_power   Float
+  datetime     DateTime @default(now())
+}
+
+model logs {
+  id                 Int     @id @default(autoincrement())
+  file_name          String?
+  date_insertion     DateTime @default(now())
+}
