@@ -1,7 +1,7 @@
 import chokidar from "chokidar";
 const EventEmitter = require("events").EventEmitter;
 import fsExtra from "fs-extra";
-import { CSV_BAD_INTEGRITY_FILE_PATH } from "./constants";
+import { CSV_BAD_INTEGRITY_FILE_PATH, CSV_NEW_FILE_PATH } from "./constants";
 import saveDataToDatabase from "./saveToDatabase";
 
 class Observer extends EventEmitter {
@@ -18,7 +18,7 @@ class Observer extends EventEmitter {
       watcher.on("add", async (filePath) => {
         const encryptedFileContent = await fsExtra.readFile(filePath);
 
-        const filename = filePath.replace("csv/new/", "");
+        const filename = filePath.replace(CSV_NEW_FILE_PATH.replace("./", "") + "/", "");
         // Only decrypt .csv files
         if (filename.indexOf(".csv")) {
           // Decrypt file
