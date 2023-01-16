@@ -1,10 +1,7 @@
-import { PrismaClient } from "@prisma/client";
 import fsExtra from "fs-extra";
 import readline from "readline";
 import { CSV_HISTORY_FILE_PATH, CSV_NEW_FILE_PATH } from "./constants";
 import { createLog, createSensorsData } from "./db";
-
-const prisma = new PrismaClient();
 
 const saveDataToDatabase = async (filename: string) => {
   try {

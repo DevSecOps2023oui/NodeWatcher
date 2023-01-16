@@ -1,9 +1,7 @@
 import chokidar from "chokidar";
 const EventEmitter = require("events").EventEmitter;
 import fsExtra from "fs-extra";
-import CheckIntegrity from "./checkIntegrity";
-import { CSV_BAD_INTEGRITY_FILE_PATH, CSV_FILE_PATH } from "./constants";
-import decryptData from "./decryptFile";
+import { CSV_BAD_INTEGRITY_FILE_PATH } from "./constants";
 import saveDataToDatabase from "./saveToDatabase";
 
 class Observer extends EventEmitter {
