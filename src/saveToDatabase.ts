@@ -1,9 +1,9 @@
 import fsExtra from "fs-extra";
 import readline from "readline";
-import { CSV_HISTORY_FILE_PATH, CSV_NEW_FILE_PATH } from "./constants";
+import { CSV_COMPLETED_FILE_PATH, CSV_NEW_FILE_PATH, CSV_PROCESSING_FILE_PATH } from "./constants";
 import { createLog, createSensorsData } from "./db";
 
-const saveDataToDatabase = async (CSVFilename: string, MD5Filename: string) => {
+const saveDataToDatabase = async (zipPath: string, CSVFilename: string, MD5Filename: string) => {
   try {
     //save in logs table the filename and the datetime
     createLog({
@@ -12,7 +12,7 @@ const saveDataToDatabase = async (CSVFilename: string, MD5Filename: string) => {
     });
 
     //save in data table the fileContent
-    const fileStream = fsExtra.createReadStream(`${CSV_NEW_FILE_PATH}/${CSVFilename}`);
+    const fileStream = fsExtra.createReadStream(`${CSV_PROCESSING_FILE_PATH}/${CSVFilename}`);
 
     const rl = readline.createInterface({
       input: fileStream,
@@ -42,18 +42,23 @@ const saveDataToDatabase = async (CSVFilename: string, MD5Filename: string) => {
     });
 
     rl.on("close", () => {
-      //move file to csv/history folder
-      fsExtra.moveSync(
-        `${CSV_NEW_FILE_PATH}/${CSVFilename}`,
-        `${CSV_HISTORY_FILE_PATH}/${CSVFilename}`,
-        { overwrite: true },
+      // Move file to failed folder
+      console.log(
+        `\x1b[33mFile completed, move file to completed folder\x1b[0m`,
       );
 
-      // delete md5 file
-      fsExtra.exists(`${CSV_NEW_FILE_PATH}/${MD5Filename}`).then((exists) => {
-        if (exists) {
-          fsExtra.unlink(`${CSV_NEW_FILE_PATH}/${MD5Filename}`);
-        }
+      // delete processing files
+      fsExtra.exists(`${CSV_PROCESSING_FILE_PATH}/${CSVFilename}`).then((exists) => {
+        if (exists) fsExtra.remove(`${CSV_PROCESSING_FILE_PATH}/${CSVFilename}`);
+      });
+      fsExtra.exists(`${CSV_PROCESSING_FILE_PATH}/${MD5Filename}`).then((exists) => {
+        if (exists) fsExtra.remove(`${CSV_PROCESSING_FILE_PATH}/${MD5Filename}`);
+      });
+
+      const zipFilename = zipPath.replace(CSV_NEW_FILE_PATH.replace("./", ""), "");
+      // move zip file to failed folder
+      fsExtra.exists(zipPath).then((exists) => {
+        if (exists) fsExtra.move(zipPath, `${CSV_COMPLETED_FILE_PATH}/${zipFilename}`);
       });
     });
   } catch (error) {

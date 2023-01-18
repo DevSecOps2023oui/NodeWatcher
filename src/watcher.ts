@@ -1,8 +1,9 @@
+import decompress from "decompress";
 import chokidar from "chokidar";
 const EventEmitter = require("events").EventEmitter;
 import fsExtra from "fs-extra";
 import CheckIntegrity from "./checkIntegrity";
-import { CSV_BAD_INTEGRITY_FILE_PATH, CSV_NEW_FILE_PATH } from "./constants";
+import { CSV_FAILED_FILE_PATH, CSV_NEW_FILE_PATH, CSV_PROCESSING_FILE_PATH } from "./constants";
 import saveDataToDatabase from "./saveToDatabase";
 
 class Observer extends EventEmitter {
@@ -17,51 +18,33 @@ class Observer extends EventEmitter {
       var watcher = chokidar.watch(folder, { persistent: true });
 
       watcher.on("add", async (filePath) => {
-        const CSVContent = await fsExtra.readFile(filePath);
+        const filename = filePath.replace(CSV_NEW_FILE_PATH.replace("./", "") + "/", "");
 
-        const CSVFilename = filePath.replace(CSV_NEW_FILE_PATH.replace("./", "") + "/", "");
-        // Get only .txt files
+        if (filename.indexOf(".zip") !== -1) {
+          console.log(`\x1b[33m[${new Date().toLocaleString()}] A new zip file has been added \x1b[0m`);
 
-        if (CSVFilename.indexOf(".csv") !== -1) {
-          // get the csv file
+          //  in treatment folder
+          const files = await decompress(filePath, CSV_PROCESSING_FILE_PATH);
 
-          // Encryption doesn't work yet so we receive a simple .csv file
-          // const csvFilename = filename.replace(".txt", ".csv.encrypted");
-          const MD5Filename = CSVFilename.replace(".csv", ".txt");
+          const csvFile = files.find((file) => file.path.indexOf(".csv") !== -1);
+          const md5File = files.find((file) => file.path.indexOf(".txt") !== -1);
 
-          const MD5Content = await fsExtra.readFile(CSV_NEW_FILE_PATH + "/" + MD5Filename);
+          // If the zip file contains a csv and a txt file
+          if (csvFile && md5File) {
+            const isIntegrityGood = CheckIntegrity(csvFile.data, md5File.data.toString());
 
-          // const md5 = await getMD5(txtContent)
-          const md5 = MD5Content.toString();
-
-          // Encryption doesn't work yet
-          // const fileContent = decryptData(CSVContent);
-          const fileContent = CSVContent;
-
-          // Check integrity of file with MD5 hash
-          const isIntegrityGood = CheckIntegrity(fileContent, md5);
-
-          if (isIntegrityGood) {
-            // Save data to database
-            console.log(
-              `[${new Date().toLocaleString()}] File integrity is good, saving data to database`,
-            );
-            await saveDataToDatabase(CSVFilename, MD5Filename);
+            // If the integrity is good
+            if (isIntegrityGood) {
+              // Save data to database
+              console.log(
+                `\x1b[32mFile integrity is good, saving data to database\x1b[0m`,
+              );
+              await saveDataToDatabase(filePath, csvFile.path, md5File.path);
+            } else {
+              handleFailedFile(filePath, csvFile.path, md5File.path);
+            }
           } else {
-            // Move file to bad-integrity folder
-            console.log(
-              `[${new Date().toLocaleString()}] File integrity is bad, move file to bad-integrity folder`,
-            );
-            fsExtra.moveSync(filePath, `${CSV_BAD_INTEGRITY_FILE_PATH}/${CSVFilename}`, {
-              overwrite: true,
-            });
-
-            // delete md5 file
-            fsExtra.exists(`${CSV_NEW_FILE_PATH}/${MD5Filename}`).then((exists) => {
-              if (exists) {
-                fsExtra.unlink(`${CSV_NEW_FILE_PATH}/${MD5Filename}`);
-              }
-            });
+            handleFailedFile(filePath, csvFile?.path, md5File?.path);
           }
         }
       });
@@ -70,5 +53,32 @@ class Observer extends EventEmitter {
     }
   }
 }
+
+const handleFailedFile = async (zipPath: string, csvFilename?: string, md5Filename?: string) => {
+  // Move file to failed folder
+  console.log(CSV_NEW_FILE_PATH.replace("./", ""));
+  
+  const zipFilename = zipPath.replace(CSV_NEW_FILE_PATH.replace("./", ""), "");
+
+  console.log(
+    `\x1b[31mFile failed, move file to failed folder\x1b[0m`,
+  );
+
+  // delete processing files
+  if (csvFilename)
+    fsExtra.exists(`${CSV_PROCESSING_FILE_PATH}/${csvFilename}`).then((exists) => {
+      if (exists) fsExtra.remove(`${CSV_PROCESSING_FILE_PATH}/${csvFilename}`);
+    });
+
+  if (md5Filename)
+    fsExtra.exists(`${CSV_PROCESSING_FILE_PATH}/${md5Filename}`).then((exists) => {
+      if (exists) fsExtra.remove(`${CSV_PROCESSING_FILE_PATH}/${md5Filename}`);
+    });
+
+  // move zip file to failed folder
+  fsExtra.exists(zipPath).then((exists) => {
+    if (exists) fsExtra.move(zipPath, `${CSV_FAILED_FILE_PATH}/${zipFilename}`);
+  });
+};
 
 export default Observer;
