@@ -52,10 +52,16 @@ class Observer extends EventEmitter {
             console.log(
               `[${new Date().toLocaleString()}] File integrity is bad, move file to bad-integrity folder`,
             );
-            fsExtra.moveSync(filePath, `${CSV_BAD_INTEGRITY_FILE_PATH}/${CSVFilename}`);
+            fsExtra.moveSync(filePath, `${CSV_BAD_INTEGRITY_FILE_PATH}/${CSVFilename}`, {
+              overwrite: true,
+            });
 
             // delete md5 file
-            fsExtra.unlink(`${CSV_NEW_FILE_PATH}/${MD5Filename}`);
+            fsExtra.exists(`${CSV_NEW_FILE_PATH}/${MD5Filename}`).then((exists) => {
+              if (exists) {
+                fsExtra.unlink(`${CSV_NEW_FILE_PATH}/${MD5Filename}`);
+              }
+            });
           }
         }
       });

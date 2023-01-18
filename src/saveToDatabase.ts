@@ -46,10 +46,15 @@ const saveDataToDatabase = async (CSVFilename: string, MD5Filename: string) => {
       fsExtra.moveSync(
         `${CSV_NEW_FILE_PATH}/${CSVFilename}`,
         `${CSV_HISTORY_FILE_PATH}/${CSVFilename}`,
+        { overwrite: true },
       );
 
       // delete md5 file
-      fsExtra.unlink(`${CSV_NEW_FILE_PATH}/${MD5Filename}`);
+      fsExtra.exists(`${CSV_NEW_FILE_PATH}/${MD5Filename}`).then((exists) => {
+        if (exists) {
+          fsExtra.unlink(`${CSV_NEW_FILE_PATH}/${MD5Filename}`);
+        }
+      });
     });
   } catch (error) {
     console.log(error);
