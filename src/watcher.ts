@@ -17,26 +17,26 @@ class Observer extends EventEmitter {
       var watcher = chokidar.watch(folder, { persistent: true });
 
       watcher.on("add", async (filePath) => {
-        const txtContent = await fsExtra.readFile(filePath);
+        const CSVContent = await fsExtra.readFile(filePath);
 
-        const MD5Filename = filePath.replace(CSV_NEW_FILE_PATH.replace("./", "") + "/", "");
+        const CSVFilename = filePath.replace(CSV_NEW_FILE_PATH.replace("./", "") + "/", "");
         // Get only .txt files
 
-        if (MD5Filename.indexOf(".txt") !== -1) {
+        if (CSVFilename.indexOf(".csv") !== -1) {
           // get the csv file
 
           // Encryption doesn't work yet so we receive a simple .csv file
           // const csvFilename = filename.replace(".txt", ".csv.encrypted");
-          const CSVFilename = MD5Filename.replace(".txt", ".csv");
+          const MD5Filename = CSVFilename.replace(".csv", ".txt");
 
-          const CSVFileContent = await fsExtra.readFile(CSV_NEW_FILE_PATH + "/" + CSVFilename);
+          const MD5Content = await fsExtra.readFile(CSV_NEW_FILE_PATH + "/" + MD5Filename);
 
           // const md5 = await getMD5(txtContent)
-          const md5 = txtContent.toString();
+          const md5 = MD5Content.toString();
 
           // Encryption doesn't work yet
-          // const fileContent = decryptData(CSVFileContent);
-          const fileContent = CSVFileContent;
+          // const fileContent = decryptData(CSVContent);
+          const fileContent = CSVContent;
 
           // Check integrity of file with MD5 hash
           const isIntegrityGood = CheckIntegrity(fileContent, md5);
